@@ -1,4 +1,4 @@
-# Workspace Manager
+# Workspace Manager for VSCode
 
 A command-line tool to automatically generate VS Code workspace files from directory structures.
 
@@ -7,7 +7,7 @@ A command-line tool to automatically generate VS Code workspace files from direc
 - 📁 Scans directories and creates workspace entries
 - 🏗️ Includes root directory by default
 - 🔄 Updates existing workspace files
-- 🔧 Configurable workspace tasks
+- 🔧 Configurable workspace task
 - 🚫 Ignores hidden folders
 
 ## Installation
