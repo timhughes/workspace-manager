@@ -64,6 +64,9 @@ pub struct WorkspaceFile {
     pub folders: Vec<WorkspaceFolder>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tasks: Option<Tasks>,
+    // Add a catch-all field for other sections
+    #[serde(flatten)]
+    pub other: serde_json::Map<String, serde_json::Value>,
 }
 
 pub fn is_hidden(path: &Path) -> bool {
@@ -124,9 +127,7 @@ pub fn merge_tasks(existing: Option<Tasks>, new_task: Task) -> Tasks {
     tasks
 }
 
-pub fn create_workspace_task(args: &Args) -> Tasks {
-    let current_exe = env::current_exe()
-        .unwrap_or_else(|_| PathBuf::from("workspace-manager"));
+fn args_to_vec(args: &Args) -> Vec<String> {
     let mut task_args = vec![];
     
     if let Some(name) = &args.name {
@@ -136,14 +137,21 @@ pub fn create_workspace_task(args: &Args) -> Tasks {
         task_args.push("--exclude-current".to_string());
     }
     task_args.extend_from_slice(&["--path".to_string(), args.path.clone()]);
+    
+    task_args
+}
 
+pub fn create_workspace_task(args: &Args) -> Tasks {
     Tasks {
         version: "2.0.0".to_string(),
         tasks: vec![Task {
             label: "Update Workspace".to_string(),
             task_type: "process".to_string(),
-            command: current_exe.to_string_lossy().to_string(),
-            args: task_args,
+            command: env::current_exe()
+                .unwrap_or_else(|_| PathBuf::from("workspace-manager"))
+                .to_string_lossy()
+                .to_string(),
+            args: args_to_vec(args),
         }],
     }
 }
@@ -159,12 +167,27 @@ pub fn create_workspace(
     let mut workspace = WorkspaceFile::default();
     let workspace_file = format!("{}.code-workspace", workspace_name);
     
+    // Read existing workspace file if it exists
     if Path::new(&workspace_file).exists() {
         if let Ok(content) = fs::read_to_string(&workspace_file) {
             if let Ok(existing_workspace) = serde_json::from_str::<WorkspaceFile>(&content) {
+                // Preserve other sections
+                workspace.other = existing_workspace.other;
+                // Preserve existing tasks
                 workspace.tasks = existing_workspace.tasks;
                 if update_task {
-                    workspace.tasks = Some(create_workspace_task(args));
+                    // Only update our specific task
+                    if let Some(tasks) = &mut workspace.tasks {
+                        tasks.tasks.retain(|t| t.label != "Update Workspace");
+                        tasks.tasks.push(Task {
+                            label: "Update Workspace".to_string(),
+                            task_type: "process".to_string(),
+                            command: env::current_exe()?.to_string_lossy().to_string(),
+                            args: args_to_vec(args),
+                        });
+                    } else {
+                        workspace.tasks = Some(create_workspace_task(args));
+                    }
                 }
             }
         }
@@ -172,7 +195,7 @@ pub fn create_workspace(
         workspace.tasks = Some(create_workspace_task(args));
     }
 
-    // Include current directory by default unless excluded
+    // Update folders
     if !exclude_current {
         workspace.folders.push(WorkspaceFolder {
             path: ".".to_string(),

@@ -30,12 +30,6 @@ cargo build --release
 cargo install --path .
 ```
 
-### Install from crates.io
-
-```bash
-cargo install workspace-manager
-```
-
 ## Usage
 
 ```bash
