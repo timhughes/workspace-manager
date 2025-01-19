@@ -37,10 +37,10 @@ cargo install --path .
 workspace-manager
 
 # Scan specific path (includes current directory by default)
-workspace-manager --path /path/to/project
+workspace-manager --path /path/to/projects
 
 # Exclude current directory
-workspace-manager -p /path/to/project --exclude-current
+workspace-manager -p /path/to/projects --exclude-current
 
 # Custom workspace name and update tasks
 workspace-manager -p . -n my-workspace --update-task
